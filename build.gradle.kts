@@ -10,15 +10,15 @@ repositories {
 }
 
 kotlin {
-    val targets = listOf(
-        linuxX64()
-    )
+    linuxX64 {
+        binaries {
+            executable {
+                entryPoint = "main"
+            }
 
-    targets.forEach { target ->
-        target.apply {
-            binaries {
-                executable {
-                    entryPoint = "main"
+            compilations.getByName("main") {
+                cinterops {
+                    val libpng by creating
                 }
             }
         }
