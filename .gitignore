@@ -5,3 +5,7 @@ build/
 # IntelliJ
 .idea/
 *.iml
+
+# C outputs
+c-demo/demo
+c-demo/demo.o
