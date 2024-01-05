@@ -7,7 +7,14 @@ fun main() {
 
     println("Hello Mandelbrot!")
     println("powered by libpng v$libPngVersion\n")
-    printAsciiImage(imageResult)
+
+    val path = "output.png"
+
+    if (PngWriter.writePng(imageResult, path) == 0) {
+        println("Wrote result as PNG into $path.")
+    } else {
+        println("Failure writing PNG.")
+    }
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -19,15 +26,3 @@ fun getLibPngVersion(): String = png_access_version_number().let {
     "$major.$minor.$patch"
 }
 
-fun printAsciiImage(imageResult: ImageResult) {
-    var offset = 0
-    for (y in 0..<imageResult.height) {
-        for (x in 0..<imageResult.width) {
-            val char = Char(65 + imageResult.pixels[offset++].toInt())
-
-            print(char)
-        }
-        println()
-    }
-    println()
-}

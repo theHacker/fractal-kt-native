@@ -1,19 +1,19 @@
 object Mandelbrot {
 
     fun generate(): ImageResult {
-        val imageWidth = 30
-        val imageHeight = 20
-        val centerX = 0.0
-        val centerY = 1.0
-        val zoom = 2.0
+        val imageWidth = 300
+        val imageHeight = 200
+        val centerX = -0.5
+        val centerY = 0.0
+        val zoom = 20.0
 
         val pixels = UByteArray(imageWidth * imageHeight)
 
         var pixelOffset = 0
         for (pixelY in 0..<imageHeight) {
             for (pixelX in 0..<imageWidth) {
-                val re = (pixelX - imageWidth/2) / zoom + centerX
-                val im = (pixelY - imageHeight/2) / zoom + centerY
+                val re = (pixelX - imageWidth/2).toDouble() / zoom + centerX
+                val im = (pixelY - imageHeight/2).toDouble() / zoom + centerY
                 val complex = Complex(re, im)
 
                 val iterations = calculatePoint(complex)
@@ -22,7 +22,7 @@ object Mandelbrot {
             }
         }
 
-        return ImageResult(imageWidth, imageHeight, pixels)
+        return ImageResult(imageWidth.toUInt(), imageHeight.toUInt(), pixels)
     }
 
     private fun calculatePoint(c: Complex): Int {
@@ -41,8 +41,8 @@ object Mandelbrot {
 }
 
 class ImageResult(
-    val width: Int,
-    val height: Int,
+    val width: UInt,
+    val height: UInt,
 
     /**
      * for now: just iterations (0..255), saved left-to-right, top-to-bottom
