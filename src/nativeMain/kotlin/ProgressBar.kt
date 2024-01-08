@@ -1,5 +1,7 @@
 import kotlinx.cinterop.*
 import platform.posix.sprintf
+import kotlin.concurrent.AtomicInt
+import kotlin.concurrent.Volatile
 import kotlin.math.round
 
 @OptIn(ObsoleteNativeApi::class) // see https://youtrack.jetbrains.com/issue/KT-55163 for details
@@ -7,15 +9,16 @@ class ProgressBar(private val max: Int, private val width: Int) {
 
     private val bitmapDone = BitSet(max)
 
-    private var doneCount = 0
+    private val doneCount = AtomicInt(0)
+
+    @Volatile
     private var percent = 0.0
 
     // Assuming markDone() is called exactly once per value. Otherwise, doneCount and percent don't work correctly.
     fun markDone(value: Int) {
         bitmapDone.set((value.toDouble() / max.toDouble() * width.toDouble()).toInt())
 
-        doneCount++
-        percent = doneCount.toDouble() / max.toDouble()
+        percent = doneCount.incrementAndGet().toDouble() / max.toDouble()
     }
 
     @OptIn(ExperimentalForeignApi::class)

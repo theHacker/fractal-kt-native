@@ -27,9 +27,10 @@ object ArgumentsParser {
         var threshold = 50.0
         var iterations = 25
         var showProgress = false
+        var parallelizeCoroutines = 1
 
         while (true) {
-            when (getopt(argc, argv, "s:c:z:t:i:p")) {
+            when (getopt(argc, argv, "s:c:z:t:i:px:")) {
                 -1 -> break
 
                 's'.code -> {
@@ -71,6 +72,16 @@ object ArgumentsParser {
                 'p'.code -> {
                     showProgress = true
                 }
+                'x'.code -> {
+                    parallelizeCoroutines = optarg!!.toKString()
+                        .let {
+                            it.toIntOrNull()
+                                ?: run {
+                                    fprintf(stderr, "Cannot parse '$it' as threads.")
+                                    exitProcess(1)
+                                }
+                        }
+                }
 
                 '?'.code -> {
                     exitProcess(1)
@@ -79,7 +90,7 @@ object ArgumentsParser {
         }
 
         // Return struct
-        return Arguments(size, center, zoom, threshold, iterations, showProgress)
+        return Arguments(size, center, zoom, threshold, iterations, showProgress, parallelizeCoroutines)
     }
 
     private fun parseSize(string: String): Coords<Int> = regexSize
@@ -110,5 +121,6 @@ data class Arguments(
     val zoom: Double,
     val threshold: Double,
     val iterations: Int,
-    val showProgress: Boolean
+    val showProgress: Boolean,
+    val parallelizeCoroutines: Int
 )

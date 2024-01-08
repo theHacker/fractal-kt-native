@@ -1,6 +1,10 @@
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import platform.posix.fprintf
 import platform.posix.stderr
+import kotlin.math.ceil
 
 object Mandelbrot {
 
@@ -11,23 +15,36 @@ object Mandelbrot {
                 stderr,
                 "Generating a ${arguments.size.x}x${arguments.size.y} image " +
                     "at center coords (${arguments.center.x}, ${arguments.center.y}) " +
-                    "with zoom ${arguments.zoom}, threshold ${arguments.threshold} and max iterations ${arguments.iterations}...\n"
+                    "with zoom ${arguments.zoom}, threshold ${arguments.threshold} and " +
+                    "max iterations ${arguments.iterations}...\n"
             )
+
+            if (arguments.parallelizeCoroutines > 1) {
+                fprintf(
+                    stderr,
+                    "Using ${arguments.parallelizeCoroutines} coroutines to parallelize...\n"
+                )
+            }
         }
 
         val pixels = UByteArray(arguments.size.x * arguments.size.y * 3)
         val progressBar = ProgressBar(arguments.size.y, 60)
 
-        val dummyYs = (0..<arguments.size.y).shuffled()
-        for (pixelY in dummyYs) {
-            val context = GenerationContext(pixelY, arguments, colorGradient, pixels)
-            generateRow(context)
+        val jobYSize = ceil(arguments.size.y.toDouble() / arguments.parallelizeCoroutines).toInt()
 
-            progressBar.markDone(pixelY + 1)
-            if (arguments.showProgress) {
-                fprintf(stderr, "%s", progressBar.generate())
-            }
+        runBlocking {
+            (0..<arguments.size.y)
+                .chunked(jobYSize)
+                .forEach {
+                    val pixelsY = it.min()..it.max()
+
+                    val context = GenerationContext(pixelsY, arguments, colorGradient, progressBar, pixels)
+                    launch(Dispatchers.Default) {
+                        generateRows(context)
+                    }
+                }
         }
+
         if (arguments.showProgress) {
             fprintf(stderr, "\nAll done.\n")
         }
@@ -35,26 +52,34 @@ object Mandelbrot {
         return ImageResult(arguments.size.x.toUInt(), arguments.size.y.toUInt(), pixels)
     }
 
-    private fun generateRow(context: GenerationContext) {
-        val (pixelY, arguments, colorGradient, pixels) = context
+    @OptIn(ExperimentalForeignApi::class)
+    private fun generateRows(context: GenerationContext) {
+        val (pixelsY, arguments, colorGradient, progressBar, pixels) = context
 
-        var pixelOffset = pixelY * arguments.size.x * 3
-        for (pixelX in 0..<arguments.size.x) {
-            val re = (pixelX - arguments.size.x/2).toDouble() / arguments.zoom + arguments.center.x
-            val im = (pixelY - arguments.size.y/2).toDouble() / arguments.zoom - arguments.center.y
-            val complex = Complex(re, im)
+        var pixelOffset = pixelsY.start * arguments.size.x * 3
+        for (pixelY in pixelsY.start..pixelsY.endInclusive) {
+            for (pixelX in 0..<arguments.size.x) {
+                val re = (pixelX - arguments.size.x/2).toDouble() / arguments.zoom + arguments.center.x
+                val im = (pixelY - arguments.size.y/2).toDouble() / arguments.zoom - arguments.center.y
+                val complex = Complex(re, im)
 
-            val iterations = calculatePoint(complex, arguments.threshold, arguments.iterations)
+                val iterations = calculatePoint(complex, arguments.threshold, arguments.iterations)
 
-            val color = if (iterations == -1) {
-                Color.BLACK
-            } else {
-                colorGradient.getColor(iterations, arguments.iterations)
+                val color = if (iterations == -1) {
+                    Color.BLACK
+                } else {
+                    colorGradient.getColor(iterations, arguments.iterations)
+                }
+
+                pixels[pixelOffset++] = color.r
+                pixels[pixelOffset++] = color.g
+                pixels[pixelOffset++] = color.b
             }
 
-            pixels[pixelOffset++] = color.r
-            pixels[pixelOffset++] = color.g
-            pixels[pixelOffset++] = color.b
+            progressBar.markDone(pixelY + 1)
+            if (arguments.showProgress) {
+                fprintf(stderr, "%s", progressBar.generate())
+            }
         }
     }
 
@@ -82,8 +107,9 @@ class ImageResult(
 )
 
 private data class GenerationContext(
-    val pixelY: Int,
+    val pixelsY: ClosedRange<Int>,
     val arguments: Arguments,
     val colorGradient: ColorGradient,
+    val progressBar: ProgressBar, // shared writing into this!
     val pixels: UByteArray // shared writing into this!
 )
