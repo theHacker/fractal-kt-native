@@ -1,17 +1,10 @@
 import kotlinx.cinterop.ExperimentalForeignApi
-import libpng.fprintf
-import libpng.stderr
+import platform.posix.fprintf
+import platform.posix.stderr
 
 @OptIn(ExperimentalForeignApi::class)
 fun main(args: Array<String>) {
     val arguments = ArgumentsParser.parseArguments(args)
-    fprintf(
-        stderr,
-        "Generating a ${arguments.size.x}x${arguments.size.y} image " +
-            "at center coords (${arguments.center.x}, ${arguments.center.y}) " +
-            "with zoom ${arguments.zoom}, threshold ${arguments.threshold} and max iterations ${arguments.iterations}..."
-    )
-
     val colorStops = arrayOf(
         ColorStop(Color(0, 0, 128)),
         ColorStop(Color(0, 128, 255)),
@@ -24,9 +17,7 @@ fun main(args: Array<String>) {
 
     val imageResult = Mandelbrot.generate(arguments, ColorGradient(colorStops))
 
-    if (PngWriter.writePng(imageResult) == 0) {
-        fprintf(stderr, " OK.\nWrote result as PNG to stdout.\n")
-    } else {
-        fprintf(stderr, " FAILED.\nFailure writing PNG.\n")
+    if (PngWriter.writePng(imageResult) != 0) {
+        fprintf(stderr, "Failure writing PNG.\n")
     }
 }

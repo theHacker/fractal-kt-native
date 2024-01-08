@@ -1,14 +1,16 @@
 import kotlinx.cinterop.*
+import platform.posix.fprintf
 import platform.posix.getopt
 import platform.posix.optarg
+import platform.posix.stderr
 import kotlin.system.exitProcess
 
+@OptIn(ExperimentalForeignApi::class)
 object ArgumentsParser {
 
     private val regexSize = Regex("\\(?(-?\\d+)[,xX](-?\\d+)\\)?")
     private val regexCenter = Regex("\\(?(-?\\d+(?:\\.\\d+)?),(-?\\d+(?:\\.\\d+)?)\\)?")
 
-    @OptIn(ExperimentalForeignApi::class)
     fun parseArguments(args: Array<String>): Arguments {
         // C-ify the args:
         // cinterop cuts out the first argument like used to from Kotlin.
@@ -24,9 +26,10 @@ object ArgumentsParser {
         var zoom = 20.0
         var threshold = 50.0
         var iterations = 25
+        var showProgress = false
 
         while (true) {
-            when (getopt(argc, argv, "s:c:z:t:i:")) {
+            when (getopt(argc, argv, "s:c:z:t:i:p")) {
                 -1 -> break
 
                 's'.code -> {
@@ -40,7 +43,7 @@ object ArgumentsParser {
                         .let {
                             it.toDoubleOrNull()
                             ?: run {
-                                println("Cannot parse '$it' as zoom.")
+                                fprintf(stderr, "Cannot parse '$it' as zoom.")
                                 exitProcess(1)
                             }
                         }
@@ -50,7 +53,7 @@ object ArgumentsParser {
                         .let {
                             it.toDoubleOrNull()
                                 ?: run {
-                                    println("Cannot parse '$it' as threshold.")
+                                    fprintf(stderr, "Cannot parse '$it' as threshold.")
                                     exitProcess(1)
                                 }
                         }
@@ -60,10 +63,13 @@ object ArgumentsParser {
                         .let {
                             it.toIntOrNull()
                                 ?: run {
-                                    println("Cannot parse '$it' as iterations.")
+                                    fprintf(stderr, "Cannot parse '$it' as iterations.")
                                     exitProcess(1)
                                 }
                         }
+                }
+                'p'.code -> {
+                    showProgress = true
                 }
 
                 '?'.code -> {
@@ -73,14 +79,14 @@ object ArgumentsParser {
         }
 
         // Return struct
-        return Arguments(size, center, zoom, threshold, iterations)
+        return Arguments(size, center, zoom, threshold, iterations, showProgress)
     }
 
     private fun parseSize(string: String): Coords<Int> = regexSize
         .matchEntire(string)
         ?.let { Coords(it.groupValues[1].toInt(), it.groupValues[2].toInt()) }
         ?: run {
-            println("Cannot parse '$string' as size.")
+            fprintf(stderr, "Cannot parse '$string' as size.")
             exitProcess(1)
         }
 
@@ -88,7 +94,7 @@ object ArgumentsParser {
         .matchEntire(string)
         ?.let { Coords(it.groupValues[1].toDouble(), it.groupValues[2].toDouble()) }
         ?: run {
-            println("Cannot parse '$string' as center.")
+            fprintf(stderr, "Cannot parse '$string' as center.")
             exitProcess(1)
         }
 }
@@ -103,5 +109,6 @@ data class Arguments(
     val center: Coords<Double>,
     val zoom: Double,
     val threshold: Double,
-    val iterations: Int
+    val iterations: Int,
+    val showProgress: Boolean
 )

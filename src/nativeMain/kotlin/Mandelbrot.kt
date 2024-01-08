@@ -1,6 +1,21 @@
+import kotlinx.cinterop.ExperimentalForeignApi
+import platform.posix.fprintf
+import platform.posix.stderr
+import kotlin.math.round
+
 object Mandelbrot {
 
+    @OptIn(ExperimentalForeignApi::class)
     fun generate(arguments: Arguments, colorGradient: ColorGradient): ImageResult {
+        if (arguments.showProgress) {
+            fprintf(
+                stderr,
+                "Generating a ${arguments.size.x}x${arguments.size.y} image " +
+                    "at center coords (${arguments.center.x}, ${arguments.center.y}) " +
+                    "with zoom ${arguments.zoom}, threshold ${arguments.threshold} and max iterations ${arguments.iterations}...\n"
+            )
+        }
+
         val pixels = UByteArray(arguments.size.x * arguments.size.y * 3)
 
         var pixelOffset = 0
@@ -17,9 +32,27 @@ object Mandelbrot {
                 pixels[pixelOffset++] = color.g
                 pixels[pixelOffset++] = color.b
             }
+
+            if (arguments.showProgress) {
+                val percent = (pixelY + 1).toDouble() / arguments.size.y
+                val percent100 = round(percent * 1000.0) / 10.0
+                val bar = generateAsciiBar(percent, 60)
+
+                fprintf(stderr, "\r%5.1f%% ... [%s]", percent100, bar)
+            }
+        }
+        if (arguments.showProgress) {
+            fprintf(stderr, "\nAll done.\n")
         }
 
         return ImageResult(arguments.size.x.toUInt(), arguments.size.y.toUInt(), pixels)
+    }
+
+    private fun generateAsciiBar(percent: Double, width: Int): String {
+        val filledChars = (percent * width).toInt()
+        val unfilledChars = width - filledChars
+
+        return "▓".repeat(filledChars) + "░".repeat(unfilledChars)
     }
 
     private fun calculatePoint(c: Complex, threshold: Double, iterations: Int): Int {
