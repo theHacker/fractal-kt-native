@@ -26,7 +26,12 @@ object Mandelbrot {
                 val complex = Complex(re, im)
 
                 val iterations = calculatePoint(complex, arguments.threshold, arguments.iterations)
-                val color = colorGradient.getColor(iterations, arguments.iterations)
+
+                val color = if (iterations == -1) {
+                    Color.BLACK
+                } else {
+                    colorGradient.getColor(iterations, arguments.iterations)
+                }
 
                 pixels[pixelOffset++] = color.r
                 pixels[pixelOffset++] = color.g
@@ -64,7 +69,7 @@ object Mandelbrot {
             if (z.abs() > threshold) return iteration
         }
 
-        return 0
+        return -1
     }
 }
 

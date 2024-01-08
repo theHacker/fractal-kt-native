@@ -57,4 +57,8 @@ data class Color(
         g.toUInt().toUByte(),
         b.toUInt().toUByte()
     )
+
+    companion object {
+        val BLACK = Color(0u, 0u, 0u)
+    }
 }
