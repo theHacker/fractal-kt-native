@@ -7,7 +7,7 @@ object Mandelbrot {
         for (pixelY in 0..<arguments.size.y) {
             for (pixelX in 0..<arguments.size.x) {
                 val re = (pixelX - arguments.size.x/2).toDouble() / arguments.zoom + arguments.center.x
-                val im = (pixelY - arguments.size.y/2).toDouble() / arguments.zoom + arguments.center.y
+                val im = (pixelY - arguments.size.y/2).toDouble() / arguments.zoom - arguments.center.y
                 val complex = Complex(re, im)
 
                 val iterations = calculatePoint(complex, arguments.threshold, arguments.iterations)
