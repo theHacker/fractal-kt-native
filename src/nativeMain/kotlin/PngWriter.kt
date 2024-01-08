@@ -38,10 +38,9 @@ object PngWriter {
 
             var ptr: NativePtr = rowPointer.rawValue
             for (x in 0u..<imageResult.width) {
-                val r = (imageResult.pixels[pixelIndex] * 10u).toUByte()
-                val g = (imageResult.pixels[pixelIndex] * 10u).toUByte()
-                val b = (imageResult.pixels[pixelIndex] * 10u).toUByte()
-                pixelIndex++
+                val r = imageResult.pixels[pixelIndex++]
+                val g = imageResult.pixels[pixelIndex++]
+                val b = imageResult.pixels[pixelIndex++]
 
                 interpretOpaquePointed(ptr).reinterpret<UByteVar>().value = r
                 ptr = ptr.plus(1)

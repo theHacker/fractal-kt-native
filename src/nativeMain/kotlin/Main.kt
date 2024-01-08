@@ -12,7 +12,17 @@ fun main(args: Array<String>) {
             "with zoom ${arguments.zoom}, threshold ${arguments.threshold} and max iterations ${arguments.iterations}..."
     )
 
-    val imageResult = Mandelbrot.generate(arguments)
+    val colorStops = arrayOf(
+        ColorStop(Color(0, 0, 128)),
+        ColorStop(Color(0, 128, 255)),
+        ColorStop(Color(192, 255, 255)),
+        ColorStop(Color(255, 255, 0)),
+        ColorStop(Color(255, 128, 0)),
+        ColorStop(Color(0, 0, 0)),
+        ColorStop(Color(0, 0, 128))
+    )
+
+    val imageResult = Mandelbrot.generate(arguments, ColorGradient(colorStops))
 
     if (PngWriter.writePng(imageResult) == 0) {
         fprintf(stderr, " OK.\nWrote result as PNG to stdout.\n")

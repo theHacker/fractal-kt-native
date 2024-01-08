@@ -1,7 +1,7 @@
 object Mandelbrot {
 
-    fun generate(arguments: Arguments): ImageResult {
-        val pixels = UByteArray(arguments.size.x * arguments.size.y)
+    fun generate(arguments: Arguments, colorGradient: ColorGradient): ImageResult {
+        val pixels = UByteArray(arguments.size.x * arguments.size.y * 3)
 
         var pixelOffset = 0
         for (pixelY in 0..<arguments.size.y) {
@@ -11,8 +11,11 @@ object Mandelbrot {
                 val complex = Complex(re, im)
 
                 val iterations = calculatePoint(complex, arguments.threshold, arguments.iterations)
+                val color = colorGradient.getColor(iterations, arguments.iterations)
 
-                pixels[pixelOffset++] = iterations.toUByte()
+                pixels[pixelOffset++] = color.r
+                pixels[pixelOffset++] = color.g
+                pixels[pixelOffset++] = color.b
             }
         }
 
@@ -37,7 +40,7 @@ class ImageResult(
     val height: UInt,
 
     /**
-     * for now: just iterations (0..255), saved left-to-right, top-to-bottom
+     * pixel data RGB, saved left-to-right, top-to-bottom
      */
     val pixels: UByteArray
 )
