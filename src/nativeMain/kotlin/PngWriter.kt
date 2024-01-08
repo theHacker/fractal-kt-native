@@ -4,20 +4,15 @@ import libpng.*
 object PngWriter {
 
     @OptIn(ExperimentalForeignApi::class)
-    fun writePng(imageResult: ImageResult, path: String): Int {
-        val fp = fopen(path, "wb")
-            ?: return -1
-
+    fun writePng(imageResult: ImageResult): Int {
         val pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, null, null, null)
             ?: run {
-                fclose(fp)
                 return -1
             }
 
         val infoPtr = png_create_info_struct(pngPtr)
             ?: run {
                 png_destroy_write_struct(pngPtr.reinterpret(), null)
-                fclose(fp)
                 return -1
             }
 
@@ -59,7 +54,7 @@ object PngWriter {
             }
         }
 
-        png_init_io(pngPtr, fp)
+        png_init_io(pngPtr, stdout)
         png_set_rows(pngPtr, infoPtr, rowPointers)
         png_write_png(pngPtr, infoPtr, PNG_TRANSFORM_IDENTITY, null)
 
@@ -69,7 +64,6 @@ object PngWriter {
         png_free(pngPtr, rowPointers)
 
         png_destroy_write_struct(pngPtr.reinterpret(), infoPtr.reinterpret())
-        fclose(fp)
         return 0
     }
 }
