@@ -1,7 +1,6 @@
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.posix.fprintf
 import platform.posix.stderr
-import kotlin.math.round
 
 object Mandelbrot {
 
@@ -17,33 +16,16 @@ object Mandelbrot {
         }
 
         val pixels = UByteArray(arguments.size.x * arguments.size.y * 3)
+        val progressBar = ProgressBar(arguments.size.y, 60)
 
-        var pixelOffset = 0
-        for (pixelY in 0..<arguments.size.y) {
-            for (pixelX in 0..<arguments.size.x) {
-                val re = (pixelX - arguments.size.x/2).toDouble() / arguments.zoom + arguments.center.x
-                val im = (pixelY - arguments.size.y/2).toDouble() / arguments.zoom - arguments.center.y
-                val complex = Complex(re, im)
+        val dummyYs = (0..<arguments.size.y).shuffled()
+        for (pixelY in dummyYs) {
+            val context = GenerationContext(pixelY, arguments, colorGradient, pixels)
+            generateRow(context)
 
-                val iterations = calculatePoint(complex, arguments.threshold, arguments.iterations)
-
-                val color = if (iterations == -1) {
-                    Color.BLACK
-                } else {
-                    colorGradient.getColor(iterations, arguments.iterations)
-                }
-
-                pixels[pixelOffset++] = color.r
-                pixels[pixelOffset++] = color.g
-                pixels[pixelOffset++] = color.b
-            }
-
+            progressBar.markDone(pixelY + 1)
             if (arguments.showProgress) {
-                val percent = (pixelY + 1).toDouble() / arguments.size.y
-                val percent100 = round(percent * 1000.0) / 10.0
-                val bar = generateAsciiBar(percent, 60)
-
-                fprintf(stderr, "\r%5.1f%% ... [%s]", percent100, bar)
+                fprintf(stderr, "%s", progressBar.generate())
             }
         }
         if (arguments.showProgress) {
@@ -53,11 +35,27 @@ object Mandelbrot {
         return ImageResult(arguments.size.x.toUInt(), arguments.size.y.toUInt(), pixels)
     }
 
-    private fun generateAsciiBar(percent: Double, width: Int): String {
-        val filledChars = (percent * width).toInt()
-        val unfilledChars = width - filledChars
+    private fun generateRow(context: GenerationContext) {
+        val (pixelY, arguments, colorGradient, pixels) = context
 
-        return "▓".repeat(filledChars) + "░".repeat(unfilledChars)
+        var pixelOffset = pixelY * arguments.size.x * 3
+        for (pixelX in 0..<arguments.size.x) {
+            val re = (pixelX - arguments.size.x/2).toDouble() / arguments.zoom + arguments.center.x
+            val im = (pixelY - arguments.size.y/2).toDouble() / arguments.zoom - arguments.center.y
+            val complex = Complex(re, im)
+
+            val iterations = calculatePoint(complex, arguments.threshold, arguments.iterations)
+
+            val color = if (iterations == -1) {
+                Color.BLACK
+            } else {
+                colorGradient.getColor(iterations, arguments.iterations)
+            }
+
+            pixels[pixelOffset++] = color.r
+            pixels[pixelOffset++] = color.g
+            pixels[pixelOffset++] = color.b
+        }
     }
 
     private fun calculatePoint(c: Complex, threshold: Double, iterations: Int): Int {
@@ -81,4 +79,11 @@ class ImageResult(
      * pixel data RGB, saved left-to-right, top-to-bottom
      */
     val pixels: UByteArray
+)
+
+private data class GenerationContext(
+    val pixelY: Int,
+    val arguments: Arguments,
+    val colorGradient: ColorGradient,
+    val pixels: UByteArray // shared writing into this!
 )
