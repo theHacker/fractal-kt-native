@@ -1,36 +1,28 @@
 object Mandelbrot {
 
-    fun generate(): ImageResult {
-        val imageWidth = 300
-        val imageHeight = 200
-        val centerX = -0.5
-        val centerY = 0.0
-        val zoom = 20.0
-
-        val pixels = UByteArray(imageWidth * imageHeight)
+    fun generate(arguments: Arguments): ImageResult {
+        val pixels = UByteArray(arguments.size.x * arguments.size.y)
 
         var pixelOffset = 0
-        for (pixelY in 0..<imageHeight) {
-            for (pixelX in 0..<imageWidth) {
-                val re = (pixelX - imageWidth/2).toDouble() / zoom + centerX
-                val im = (pixelY - imageHeight/2).toDouble() / zoom + centerY
+        for (pixelY in 0..<arguments.size.y) {
+            for (pixelX in 0..<arguments.size.x) {
+                val re = (pixelX - arguments.size.x/2).toDouble() / arguments.zoom + arguments.center.x
+                val im = (pixelY - arguments.size.y/2).toDouble() / arguments.zoom + arguments.center.y
                 val complex = Complex(re, im)
 
-                val iterations = calculatePoint(complex)
+                val iterations = calculatePoint(complex, arguments.threshold, arguments.iterations)
 
                 pixels[pixelOffset++] = iterations.toUByte()
             }
         }
 
-        return ImageResult(imageWidth.toUInt(), imageHeight.toUInt(), pixels)
+        return ImageResult(arguments.size.x.toUInt(), arguments.size.y.toUInt(), pixels)
     }
 
-    private fun calculatePoint(c: Complex): Int {
-        val threshold = 50.0
-        val maxIterations = 25
+    private fun calculatePoint(c: Complex, threshold: Double, iterations: Int): Int {
         var z = Complex(0.0, 0.0) // z0
 
-        for (iteration in 0..<maxIterations) {
+        for (iteration in 0..<iterations) {
             z = z * z + c // z(n+1)
 
             if (z.abs() > threshold) return iteration
