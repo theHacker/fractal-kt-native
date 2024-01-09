@@ -54,7 +54,7 @@ object ArgumentsParser {
                         .let {
                             it.toDoubleOrNull()
                             ?: run {
-                                fprintf(stderr, "Cannot parse '$it' as zoom.")
+                                fprintf(stderr, "Cannot parse '$it' as zoom.\n")
                                 exitProcess(1)
                             }
                         }
@@ -64,7 +64,7 @@ object ArgumentsParser {
                         .let {
                             it.toDoubleOrNull()
                                 ?: run {
-                                    fprintf(stderr, "Cannot parse '$it' as threshold.")
+                                    fprintf(stderr, "Cannot parse '$it' as threshold.\n")
                                     exitProcess(1)
                                 }
                         }
@@ -74,7 +74,7 @@ object ArgumentsParser {
                         .let {
                             it.toIntOrNull()
                                 ?: run {
-                                    fprintf(stderr, "Cannot parse '$it' as iterations.")
+                                    fprintf(stderr, "Cannot parse '$it' as iterations.\n")
                                     exitProcess(1)
                                 }
                         }
@@ -87,7 +87,7 @@ object ArgumentsParser {
                         .let {
                             it.toIntOrNull()
                                 ?: run {
-                                    fprintf(stderr, "Cannot parse '$it' as threads.")
+                                    fprintf(stderr, "Cannot parse '$it' as threads.\n")
                                     exitProcess(1)
                                 }
                         }
@@ -110,7 +110,7 @@ object ArgumentsParser {
         .matchEntire(string)
         ?.let { Coords(it.groupValues[1].toInt(), it.groupValues[2].toInt()) }
         ?: run {
-            fprintf(stderr, "Cannot parse '$string' as size.")
+            fprintf(stderr, "Cannot parse '$string' as size.\n")
             exitProcess(1)
         }
 
@@ -118,7 +118,7 @@ object ArgumentsParser {
         .matchEntire(string)
         ?.let { Coords(it.groupValues[1].toDouble(), it.groupValues[2].toDouble()) }
         ?: run {
-            fprintf(stderr, "Cannot parse '$string' as center.")
+            fprintf(stderr, "Cannot parse '$string' as center.\n")
             exitProcess(1)
         }
 
@@ -134,7 +134,7 @@ object ArgumentsParser {
                     ColorStop(Color(r, g, b))
                 }
                 ?: run {
-                    fprintf(stderr, "Cannot parse '$colorStopString' as color stop.")
+                    fprintf(stderr, "Cannot parse '$colorStopString' as color stop.\n")
                     exitProcess(1)
                 }
         }
@@ -143,7 +143,7 @@ object ArgumentsParser {
         .toIntOrNull()
         ?.takeIf { it in 0..255 }
         ?: run {
-            fprintf(stderr, "Cannot parse '$string' as color component (must be integer between 0 and 255).")
+            fprintf(stderr, "Cannot parse '$string' as color component (must be integer between 0 and 255).\n")
             exitProcess(1)
         }
 }
