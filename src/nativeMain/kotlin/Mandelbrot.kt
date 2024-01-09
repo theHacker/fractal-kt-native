@@ -9,7 +9,7 @@ import kotlin.math.ceil
 object Mandelbrot {
 
     @OptIn(ExperimentalForeignApi::class)
-    fun generate(arguments: Arguments, colorGradient: ColorGradient): ImageResult {
+    fun generate(arguments: Arguments): ImageResult {
         if (arguments.showProgress) {
             fprintf(
                 stderr,
@@ -38,7 +38,7 @@ object Mandelbrot {
                 .forEach {
                     val pixelsY = it.min()..it.max()
 
-                    val context = GenerationContext(pixelsY, arguments, colorGradient, progressBar, pixels)
+                    val context = GenerationContext(pixelsY, arguments, progressBar, pixels)
                     launch(Dispatchers.Default) {
                         generateRows(context)
                     }
@@ -54,7 +54,7 @@ object Mandelbrot {
 
     @OptIn(ExperimentalForeignApi::class)
     private fun generateRows(context: GenerationContext) {
-        val (pixelsY, arguments, colorGradient, progressBar, pixels) = context
+        val (pixelsY, arguments, progressBar, pixels) = context
 
         var pixelOffset = pixelsY.start * arguments.size.x * 3
         for (pixelY in pixelsY.start..pixelsY.endInclusive) {
@@ -68,7 +68,7 @@ object Mandelbrot {
                 val color = if (iterations == -1) {
                     Color.BLACK
                 } else {
-                    colorGradient.getColor(iterations, arguments.iterations)
+                    arguments.colorGradient.getColor(iterations, arguments.iterations)
                 }
 
                 pixels[pixelOffset++] = color.r
@@ -109,7 +109,6 @@ class ImageResult(
 private data class GenerationContext(
     val pixelsY: ClosedRange<Int>,
     val arguments: Arguments,
-    val colorGradient: ColorGradient,
     val progressBar: ProgressBar, // shared writing into this!
     val pixels: UByteArray // shared writing into this!
 )

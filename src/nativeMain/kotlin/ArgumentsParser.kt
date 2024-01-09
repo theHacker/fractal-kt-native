@@ -10,6 +10,7 @@ object ArgumentsParser {
 
     private val regexSize = Regex("\\(?(-?\\d+)[,xX](-?\\d+)\\)?")
     private val regexCenter = Regex("\\(?(-?\\d+(?:\\.\\d+)?),(-?\\d+(?:\\.\\d+)?)\\)?")
+    private val regexColorStop = Regex("\\(?(\\d+)[, ](\\d+)[, ](\\d+)\\)?")
 
     fun parseArguments(args: Array<String>): Arguments {
         // C-ify the args:
@@ -28,9 +29,18 @@ object ArgumentsParser {
         var iterations = 25
         var showProgress = false
         var parallelizeCoroutines = 1
+        var colorStops = listOf(
+            ColorStop(Color(0, 0, 128)),
+            ColorStop(Color(0, 128, 255)),
+            ColorStop(Color(192, 255, 255)),
+            ColorStop(Color(255, 255, 0)),
+            ColorStop(Color(255, 128, 0)),
+            ColorStop(Color(0, 0, 0)),
+            ColorStop(Color(0, 0, 128))
+        )
 
         while (true) {
-            when (getopt(argc, argv, "s:c:z:t:i:px:")) {
+            when (getopt(argc, argv, "s:c:z:t:i:px:g:")) {
                 -1 -> break
 
                 's'.code -> {
@@ -82,6 +92,9 @@ object ArgumentsParser {
                                 }
                         }
                 }
+                'g'.code -> {
+                    colorStops = parseColorStops(optarg!!.toKString())
+                }
 
                 '?'.code -> {
                     exitProcess(1)
@@ -90,7 +103,7 @@ object ArgumentsParser {
         }
 
         // Return struct
-        return Arguments(size, center, zoom, threshold, iterations, showProgress, parallelizeCoroutines)
+        return Arguments(size, center, zoom, threshold, iterations, showProgress, parallelizeCoroutines, ColorGradient(colorStops))
     }
 
     private fun parseSize(string: String): Coords<Int> = regexSize
@@ -108,6 +121,31 @@ object ArgumentsParser {
             fprintf(stderr, "Cannot parse '$string' as center.")
             exitProcess(1)
         }
+
+    private fun parseColorStops(string: String): List<ColorStop> = string
+        .split(';')
+        .map { colorStopString ->
+            regexColorStop.matchEntire(colorStopString)
+                ?.let {
+                    val r = parseColorComponent(it.groupValues[1])
+                    val g = parseColorComponent(it.groupValues[2])
+                    val b = parseColorComponent(it.groupValues[3])
+
+                    ColorStop(Color(r, g, b))
+                }
+                ?: run {
+                    fprintf(stderr, "Cannot parse '$colorStopString' as color stop.")
+                    exitProcess(1)
+                }
+        }
+
+    private fun parseColorComponent(string: String): Int = string
+        .toIntOrNull()
+        ?.takeIf { it in 0..255 }
+        ?: run {
+            fprintf(stderr, "Cannot parse '$string' as color component (must be integer between 0 and 255).")
+            exitProcess(1)
+        }
 }
 
 data class Coords<T>(
@@ -122,5 +160,6 @@ data class Arguments(
     val threshold: Double,
     val iterations: Int,
     val showProgress: Boolean,
-    val parallelizeCoroutines: Int
+    val parallelizeCoroutines: Int,
+    val colorGradient: ColorGradient
 )

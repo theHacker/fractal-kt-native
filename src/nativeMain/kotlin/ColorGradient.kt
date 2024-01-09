@@ -2,7 +2,7 @@ import kotlin.experimental.ExperimentalNativeApi
 import kotlin.math.ceil
 import kotlin.math.floor
 
-class ColorGradient(private val colorStops: Array<ColorStop>) {
+class ColorGradient(private val colorStops: List<ColorStop>) {
 
     @OptIn(ExperimentalNativeApi::class)
     fun getColor(iterations: Int, maxIterations: Int): Color {
