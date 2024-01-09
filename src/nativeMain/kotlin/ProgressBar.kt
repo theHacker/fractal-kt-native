@@ -5,9 +5,32 @@ import kotlin.concurrent.Volatile
 import kotlin.math.round
 
 @OptIn(ObsoleteNativeApi::class) // see https://youtrack.jetbrains.com/issue/KT-55163 for details
-class ProgressBar(private val max: Int, private val width: Int) {
+class ProgressBar(
+    /** maximum value (inclusive), so we support values inside 0..max, though 0 will never be marked done */
+    private val max: Int,
+    /** number of characters of the progress bar */
+    private val width: Int
+) {
 
     private val bitmapDone = BitSet(max)
+    private val bitmapInProgress = BitSet(max)
+
+    private val valueToCharIndex: Map<Int, Int>
+    private val charIndexToOpenValues: Map<Int, MutableSet<Int>> = (0..<width)
+        .associateWith { mutableSetOf() }
+
+    init {
+        val tmpValueToCharIndex = mutableMapOf<Int, Int>()
+
+        for (value in 1..max) { // start with 1, we never get called with markDone(0), that's the starting situation
+            val charIndex = (value.toDouble() / max.toDouble() * (width - 1).toDouble()).toInt()
+
+            tmpValueToCharIndex[value] = charIndex
+            charIndexToOpenValues[charIndex]!!.add(value)
+        }
+
+        valueToCharIndex = tmpValueToCharIndex
+    }
 
     private val doneCount = AtomicInt(0)
 
@@ -16,7 +39,14 @@ class ProgressBar(private val max: Int, private val width: Int) {
 
     // Assuming markDone() is called exactly once per value. Otherwise, doneCount and percent don't work correctly.
     fun markDone(value: Int) {
-        bitmapDone.set((value.toDouble() / max.toDouble() * width.toDouble()).toInt())
+        val charIndex = valueToCharIndex[value]!!
+
+        bitmapInProgress.set(charIndex)
+        charIndexToOpenValues[charIndex]!!.remove(value)
+
+        if (charIndexToOpenValues[charIndex]!!.isEmpty()) {
+            bitmapDone.set(charIndex)
+        }
 
         percent = doneCount.incrementAndGet().toDouble() / max.toDouble()
     }
@@ -25,10 +55,12 @@ class ProgressBar(private val max: Int, private val width: Int) {
     fun generate(): String {
         val sbBar = StringBuilder(width)
         for (i in 0..<width) {
-            if (bitmapDone[i]) {
+            if (!bitmapInProgress[i]) {
+                sbBar.append("░")
+            } else if (bitmapDone[i]) {
                 sbBar.append("▓")
             } else {
-                sbBar.append("░")
+                sbBar.append("▒")
             }
         }
 
